@@ -1,4 +1,5 @@
 extern crate combine;
+extern crate itertools;
 use combine::{Parser, many1, token, sep_by};
 use combine::char::{hex_digit, letter, spaces};
 
@@ -48,8 +49,17 @@ mod test {
 
     #[test]
     fn split_segment() {
-        let mut parser = many1::<String, _>(letter()).skip(spaces()).skip(token('='));
-        //let hex = many1::<String, _>(hex_digit());
-        assert_eq!(parser.parse("ES ="), Ok(("ES".to_string(), "")));
+        let id = many1::<String, _>(letter()).skip(spaces()).skip(token('='));
+        let hex = many1::<String, _>(hex_digit())
+            .map(|h| u64::from_str_radix(&h, 16).unwrap());
+        let hex_list = sep_by::<Vec<u64>, _, _>(hex, spaces());
+
+        let mut parser = (id, hex_list);
+        assert_eq!(parser.parse("ES =0000 00000000 0000ffff 00009300"),
+            Ok((("ES".to_string(), vec![0, 0, 0xffff, 0x9300]), "")));
+
+        use itertools::Itertools;
+        use itertools::Tuples;
+        let (a, b, c, d): Tuples<(u64, u64, u64, u64)> = vec![0u64, 0, 0xffff, 9300].iter().tuples();
     }
 }

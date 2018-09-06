@@ -11,12 +11,12 @@ fn parse_register<I>() -> impl Parser<Input = I, Output = GeneralRegister>
 {
     let id = many1::<String, _>(letter()).skip(token('='));
     let value = many1::<String, _>(hex_digit());
-    let register = (id, value)
+    let parser = (id, value)
         .map(|(id, value)| {
             GeneralRegister(id, u64::from_str_radix(&value, 16).unwrap())
         });
 
-    register
+    parser
 }
 
 #[cfg(test)]
