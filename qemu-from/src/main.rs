@@ -2,6 +2,8 @@ extern crate combine;
 use combine::{Parser, many1, token, sep_by};
 use combine::char::{hex_digit, letter, spaces};
 
+mod register_parser;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CpuRegister {
     General(String, u32),
@@ -47,7 +49,7 @@ mod test {
     #[test]
     fn split_segment() {
         let mut parser = many1::<String, _>(letter()).skip(spaces()).skip(token('='));
-        let hex = many1::<String, _>(hex_digit());
+        //let hex = many1::<String, _>(hex_digit());
         assert_eq!(parser.parse("ES ="), Ok(("ES".to_string(), "")));
     }
 }
