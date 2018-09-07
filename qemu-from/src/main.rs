@@ -59,7 +59,7 @@ mod test {
             Ok((("ES".to_string(), vec![0, 0, 0xffff, 0x9300]), "")));
 
         use itertools::Itertools;
-        use itertools::Tuples;
-        let (a, b, c, d): Tuples<(u64, u64, u64, u64)> = vec![0u64, 0, 0xffff, 9300].iter().tuples();
+        let mut t = vec![0u64, 0, 0xffff, 0x9300].into_iter().tuples::<(_, _, _, _)>();
+        assert_eq!(t.next(), Some((0u64, 0, 0xffff, 0x9300)));
     }
 }
