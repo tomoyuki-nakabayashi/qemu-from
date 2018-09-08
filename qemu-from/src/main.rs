@@ -56,11 +56,10 @@ mod test {
         let hex_list = sep_by::<Vec<u64>, _, _>(hex, spaces())
             .map(|hexes| hexes.into_iter().tuples::<(_,_,_,_)>().next().unwrap());
 
-        let mut parser = (id, hex_list);
-        assert_eq!(parser.parse("ES =0000 00000000 0000ffff 00009300"),
-            Ok((("ES".to_string(), (0, 0, 0xffff, 0x9300)), "")));
+        let mut parser = (id, hex_list)
+            .map(move |(id, d)| CpuRegister::Segment(id, d));
 
-        let mut t = vec![0u64, 0, 0xffff, 0x9300].into_iter().tuples::<(_, _, _, _)>();
-        assert_eq!(t.next(), Some((0u64, 0, 0xffff, 0x9300)));
+        let res = parser.parse("ES =0000 00000000 0000ffff 00009300");
+        assert_eq!(res, Ok((CpuRegister::Segment("ES".to_string(), (0, 0, 0xffff, 0x9300)), "")));
     }
 }
