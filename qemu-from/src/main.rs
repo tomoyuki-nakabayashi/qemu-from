@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate combine;
 extern crate itertools;
 use combine::{Parser, many1, token, sep_by};
@@ -33,18 +34,19 @@ fn parse_general_register(line: &str) -> Vec<CpuRegister> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use register_parser::{gpr_parser, GeneralRegister};
+
+    #[derive(Debug, PartialEq)]
+    struct StatusRegisters {
+        EIP: GeneralRegister,
+        EFLAGS_RAW: GeneralRegister,
+    }
 
     #[test]
     fn general_register() {
         assert_eq!(parse_general_register("EAX=0000aa55 EBX=00000000"),
             vec![CpuRegister::General("EAX".to_string(), 0x0000aa55u32),
                 CpuRegister::General("EBX".to_string(), 0x00000000u32)]);
-    }
-
-    #[test]
-    fn segment_register() {
-        assert_eq!(parse_segment_register("ES =0000 00000000 0000ffff 00009300"),
-            CpuRegister::Segment("ES".to_string(), (0, 0, 0xffff, 0x9300)));
     }
 
     #[test]
@@ -61,5 +63,19 @@ mod test {
 
         let res = parser.parse("ES =0000 00000000 0000ffff 00009300");
         assert_eq!(res, Ok((CpuRegister::Segment("ES".to_string(), (0, 0, 0xffff, 0x9300)), "")));
+    }
+
+    #[test]
+    fn status_registers() {
+        let mut parser = struct_parser!{
+            StatusRegisters {
+                EIP: gpr_parser(),
+                _: spaces(),
+                EFLAGS_RAW: gpr_parser(),
+            }
+        };
+
+        let res = parser.parse("EIP=00007c00 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0");
+        assert_eq!(res.unwrap(), (StatusRegisters{ EIP: gpr_parser().parse("EIP=00007c00").unwrap().0, EFLAGS_RAW: gpr_parser().parse("EFL=00000202").unwrap().0 }, " [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0"));
     }
 }

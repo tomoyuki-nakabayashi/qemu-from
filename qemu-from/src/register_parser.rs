@@ -4,9 +4,9 @@ use combine::error::ParseError;
 extern crate itertools;
 
 #[derive(Debug, PartialEq)]
-struct GeneralRegister (String, u64);
+pub(crate) struct GeneralRegister (String, u64);
 
-fn gpr_parser<I>() -> impl Parser<Input = I, Output = GeneralRegister>
+pub(crate) fn gpr_parser<I>() -> impl Parser<Input = I, Output = GeneralRegister>
     where I: Stream<Item = char>,
           I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
