@@ -4,7 +4,8 @@
 extern crate combine;
 extern crate itertools;
 use combine::{Parser, many1, token, sep_by, between, one_of};
-use combine::char::{hex_digit, letter, spaces};
+use combine::char::{hex_digit, letter, spaces, string, newline};
+use combine::parser::repeat::skip_until;
 
 mod register_parser;
 
@@ -103,13 +104,24 @@ mod test {
 
     #[test]
     fn gdt() {
-        let dt = many1::<String, _>(letter()).skip(token('='));
+        let dt = string("GDT").or(string("IDT")).skip(token('='));
         let value = || spaces().with(many1::<String, _>(hex_digit())
             .map(|h| u64::from_str_radix(&h, 16).unwrap()));
         let value_pair = (value(), value());
 
         let mut parser = (dt, value_pair);
         let res = parser.parse("GDT=     000f6c00 00000037").unwrap();
-        assert_eq!(res, (("GDT".to_string(), (0xf6c00, 0x37)), ""));
+        assert_eq!(res, (("GDT", (0xf6c00, 0x37)), ""));
+
+        let res = parser.parse("IDT=     00000000 000003ff").unwrap();
+        assert_eq!(res, (("IDT", (0, 0x3ff)), ""));
+    }
+
+    #[test]
+    fn qemu_internal() {
+        let mut parser = skip_until(newline());
+        let res = parser.parse("CCS=00000000 CCD=0000fea4 CCO=EFLAGS\n").unwrap();
+
+        assert_eq!(res, ((), "\n"));
     }
 }
