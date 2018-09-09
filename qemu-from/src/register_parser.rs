@@ -1,16 +1,14 @@
-use combine::{Parser, Stream, many1, token, sep_by};
-use combine::char::{hex_digit, letter, spaces};
+use ::GeneralRegister;
+use combine::{Parser, Stream, many1, token, sep_by, one_of, between};
+use combine::char::{hex_digit, letter, spaces, alpha_num};
 use combine::error::ParseError;
 extern crate itertools;
-
-#[derive(Debug, PartialEq)]
-pub(crate) struct GeneralRegister (String, u64);
 
 pub(crate) fn gpr_parser<I>() -> impl Parser<Input = I, Output = GeneralRegister>
     where I: Stream<Item = char>,
           I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let id = many1::<String, _>(letter()).skip(token('='));
+    let id = many1::<String, _>(alpha_num()).skip(token('='));
     let value = many1::<String, _>(hex_digit());
     let parser = (id, value)
         .map(|(id, value)| {
@@ -36,6 +34,16 @@ fn segment_parser<I>() -> impl Parser<Input = I, Output = SegmentRegister>
 
     let parser = (id, hex_list)
         .map(move |(id, d)| SegmentRegister(id, d));
+
+    parser
+}
+
+pub(crate) fn eflags_parser<I>() -> impl Parser<Input = I, Output = Vec<char>>
+    where I: Stream<Item = char>,
+          I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let eflag = many1::<Vec<char>, _>(one_of("DOSZAPC-".chars()));
+    let parser = between(token('['), token(']'), eflag);
 
     parser
 }

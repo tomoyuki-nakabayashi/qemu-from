@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 #[macro_use]
 extern crate combine;
 extern crate itertools;
@@ -6,6 +8,9 @@ use combine::char::{hex_digit, letter, spaces};
 
 mod register_parser;
 
+#[derive(Debug, PartialEq)]
+pub(crate) struct GeneralRegister (String, u64);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CpuRegister {
     General(String, u32),
@@ -13,10 +18,6 @@ enum CpuRegister {
 }
 
 fn main() {
-}
-
-fn parse_segment_register(line: &str) -> CpuRegister {
-    CpuRegister::Segment("ES".to_string(), (0, 0, 0xffff, 0x9300))
 }
 
 fn parse_general_register(line: &str) -> Vec<CpuRegister> {
@@ -34,12 +35,14 @@ fn parse_general_register(line: &str) -> Vec<CpuRegister> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use register_parser::{gpr_parser, GeneralRegister};
+    use register_parser::{gpr_parser, eflags_parser};
 
     #[derive(Debug, PartialEq)]
     struct StatusRegisters {
         EIP: GeneralRegister,
         EFLAGS_RAW: GeneralRegister,
+        EFLAGS: Vec<char>,
+        HFLAGS: Vec<GeneralRegister>,
     }
 
     #[test]
@@ -72,11 +75,21 @@ mod test {
                 EIP: gpr_parser(),
                 _: spaces(),
                 EFLAGS_RAW: gpr_parser(),
+                _: spaces(),
+                EFLAGS: eflags_parser(),
+                _: spaces(),
+                HFLAGS: sep_by(gpr_parser(), spaces()),
             }
         };
 
         let res = parser.parse("EIP=00007c00 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0");
-        assert_eq!(res.unwrap(), (StatusRegisters{ EIP: gpr_parser().parse("EIP=00007c00").unwrap().0, EFLAGS_RAW: gpr_parser().parse("EFL=00000202").unwrap().0 }, " [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0"));
+        assert_eq!(res.unwrap(), (StatusRegisters{
+            EIP: gpr_parser().parse("EIP=00007c00").unwrap().0,
+            EFLAGS_RAW: gpr_parser().parse("EFL=00000202").unwrap().0,
+            EFLAGS: eflags_parser().parse("[-------]").unwrap().0,
+            HFLAGS: sep_by(gpr_parser(), spaces()).parse("CPL=0 II=0 A20=1 SMM=0 HLT=0").unwrap().0 
+            },
+            ""));
     }
 
     #[test]
