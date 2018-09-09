@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate combine;
 extern crate itertools;
-use combine::{Parser, many1, token, sep_by};
+use combine::{Parser, many1, token, sep_by, between, one_of};
 use combine::char::{hex_digit, letter, spaces};
 
 mod register_parser;
@@ -77,5 +77,14 @@ mod test {
 
         let res = parser.parse("EIP=00007c00 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0");
         assert_eq!(res.unwrap(), (StatusRegisters{ EIP: gpr_parser().parse("EIP=00007c00").unwrap().0, EFLAGS_RAW: gpr_parser().parse("EFL=00000202").unwrap().0 }, " [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0"));
+    }
+
+    #[test]
+    fn eflags() {
+        let eflag = many1::<Vec<_>, _>(one_of("DOSZAPC-".chars()));
+        let mut parser = between(token('['), token(']'), eflag);
+
+        let res = parser.parse("[-O----C]");
+        assert_eq!(res.unwrap(), (vec!['-', 'O', '-', '-', '-', '-', 'C'], ""));
     }
 }
