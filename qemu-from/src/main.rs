@@ -100,4 +100,16 @@ mod test {
         let res = parser.parse("[-O----C]");
         assert_eq!(res.unwrap(), (vec!['-', 'O', '-', '-', '-', '-', 'C'], ""));
     }
+
+    #[test]
+    fn gdt() {
+        let dt = many1::<String, _>(letter()).skip(token('='));
+        let value = || spaces().with(many1::<String, _>(hex_digit())
+            .map(|h| u64::from_str_radix(&h, 16).unwrap()));
+        let value_pair = (value(), value());
+
+        let mut parser = (dt, value_pair);
+        let res = parser.parse("GDT=     000f6c00 00000037").unwrap();
+        assert_eq!(res, (("GDT".to_string(), (0xf6c00, 0x37)), ""));
+    }
 }
