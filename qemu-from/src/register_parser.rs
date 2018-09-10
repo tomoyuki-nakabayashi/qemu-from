@@ -4,6 +4,20 @@ use combine::char::{hex_digit, letter, spaces, alpha_num};
 use combine::error::ParseError;
 extern crate itertools;
 
+fn reg_number_from_id(id: &str) -> Option<usize> {
+    match id {
+        "EAX" => Some(0),
+        "EBX" => Some(3),
+        "ECX" => Some(1),
+        "EDX" => Some(2),
+        "ESI" => Some(4),
+        "EDI" => Some(5),
+        "EBP" => Some(6),
+        "ESP" => Some(7),
+        &_ => None
+    }
+}
+
 pub(crate) fn gpr_parser<I>() -> impl Parser<Input = I, Output = GeneralRegister>
     where I: Stream<Item = char>,
           I::Error: ParseError<I::Item, I::Range, I::Position>,

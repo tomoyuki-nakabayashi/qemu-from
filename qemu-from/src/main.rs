@@ -15,6 +15,7 @@ pub(crate) struct GeneralRegister (String, u64);
 #[derive(Debug, PartialEq)]
 pub(crate) struct SegmentRegister (String, (u64, u64, u64, u64));
 
+#[derive(Debug, PartialEq)]
 struct SegmentRegisters {
     ES: u64,
     CS: u64,
@@ -24,11 +25,13 @@ struct SegmentRegisters {
     GS: u64,
 }
 
+#[derive(Debug, PartialEq)]
 struct DescriptorTable {
     GDT: (u64, u64),
     IDT: (u64, u64),
 }
 
+#[derive(Debug, PartialEq)]
 struct ControlRegs {
     CR0: u64,
     CR1: u64,
