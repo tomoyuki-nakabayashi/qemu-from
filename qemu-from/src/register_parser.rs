@@ -1,4 +1,4 @@
-use ::GeneralRegister;
+use ::{GeneralRegister, SegmentRegister};
 use combine::{Parser, Stream, many1, token, sep_by, one_of, between};
 use combine::char::{hex_digit, letter, spaces, alpha_num};
 use combine::error::ParseError;
@@ -17,9 +17,6 @@ pub(crate) fn gpr_parser<I>() -> impl Parser<Input = I, Output = GeneralRegister
 
     parser
 }
-
-#[derive(Debug, PartialEq)]
-struct SegmentRegister (String, (u64, u64, u64, u64));
 
 fn segment_parser<I>() -> impl Parser<Input = I, Output = SegmentRegister>
     where I: Stream<Item = char>,

@@ -12,6 +12,53 @@ mod register_parser;
 #[derive(Debug, PartialEq)]
 pub(crate) struct GeneralRegister (String, u64);
 
+#[derive(Debug, PartialEq)]
+pub(crate) struct SegmentRegister (String, (u64, u64, u64, u64));
+
+struct SegmentRegisters {
+    ES: u64,
+    CS: u64,
+    SS: u64,
+    DS: u64,
+    FS: u64,
+    GS: u64,
+}
+
+struct DescriptorTable {
+    GDT: (u64, u64),
+    IDT: (u64, u64),
+}
+
+struct ControlRegs {
+    CR0: u64,
+    CR1: u64,
+    CR2: u64,
+    CR3: u64,
+    DR0: u64,
+    DR1: u64,
+    DR2: u64,
+    DR3: u64,
+}
+
+#[derive(Debug, PartialEq)]
+struct StatusRegisters {
+    EIP: GeneralRegister,
+    EFLAGS_RAW: GeneralRegister,
+    EFLAGS: Vec<char>,
+    HFLAGS: Vec<GeneralRegister>,
+}
+
+#[derive(Debug, PartialEq)]
+struct Cpu {
+    regs: [u64; 8],
+    status_regs: StatusRegisters,
+    segment_regs: SegmentRegisters,
+    dt: DescriptorTable,
+    control_regs: ControlRegs,
+    efer: u64,
+}
+
+// This will be removed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CpuRegister {
     General(String, u32),
@@ -37,14 +84,6 @@ fn parse_general_register(line: &str) -> Vec<CpuRegister> {
 mod test {
     use super::*;
     use register_parser::{gpr_parser, eflags_parser};
-
-    #[derive(Debug, PartialEq)]
-    struct StatusRegisters {
-        EIP: GeneralRegister,
-        EFLAGS_RAW: GeneralRegister,
-        EFLAGS: Vec<char>,
-        HFLAGS: Vec<GeneralRegister>,
-    }
 
     #[test]
     fn general_register() {
