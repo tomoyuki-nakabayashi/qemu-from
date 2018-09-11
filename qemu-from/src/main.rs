@@ -20,12 +20,12 @@ pub(crate) struct HFlag (String, u64);
 
 #[derive(Debug, PartialEq)]
 struct SegmentRegisters {
-    ES: u64,
-    CS: u64,
-    SS: u64,
-    DS: u64,
-    FS: u64,
-    GS: u64,
+    ES: (u64, u64, u64, u64),
+    CS: (u64, u64, u64, u64),
+    SS: (u64, u64, u64, u64),
+    DS: (u64, u64, u64, u64),
+    FS: (u64, u64, u64, u64),
+    GS: (u64, u64, u64, u64),
 }
 
 #[derive(Debug, PartialEq)]
@@ -71,7 +71,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
-    use register_parser::{gpr_parser, eflags_parser, hflag_parser, qword_parser};
+    use register_parser::{gpr_parser, eflags_parser, hflag_parser, qword_parser, segment_parser};
 
     #[test]
     fn status_registers() {
@@ -125,5 +125,28 @@ mod test {
         let res = parser.parse("CCS=00000000 CCD=0000fea4 CCO=EFLAGS\n").unwrap();
 
         assert_eq!(res, ((), "\n"));
+    }
+
+    #[test]
+    fn segments() {
+        let mut parser = segment_parser();
+        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\n").unwrap();
+
+        let mut parser = many1::<String, _>(hex_digit()).map(|h| u64::from_str_radix(&h, 16).unwrap());
+        let res = parser.parse("9300\n").unwrap();
+/* 
+        let mut parser = struct_parser!{
+            SegmentRegisters {
+                ES: segment_parser().skip(newline()),
+                CS: segment_parser().skip(newline()),
+                SS: segment_parser().skip(newline()),
+                DS: segment_parser().skip(newline()),
+                FS: segment_parser().skip(newline()),
+                GS: segment_parser(),
+            }
+        };
+
+        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\nCS =0000 00000000 0000ffff 00009b00\nSS =0000 00000000 0000ffff 00009300\nDS =0000 00000000 0000ffff 00009300\nFS =0000 00000000 0000ffff 00009300\nGS =0000 00000000 0000ffff 00009300");
+ */
     }
 }

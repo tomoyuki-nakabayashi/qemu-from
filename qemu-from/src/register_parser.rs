@@ -50,7 +50,7 @@ pub(crate) fn qword_parser<I>() -> impl Parser<Input = I, Output = u64>
     parser
 }
 
-fn segment_parser<I>() -> impl Parser<Input = I, Output = SegmentRegister>
+pub(crate) fn segment_parser<I>() -> impl Parser<Input = I, Output = (u64, u64, u64, u64)>
     where I: Stream<Item = char>,
           I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
@@ -62,7 +62,7 @@ fn segment_parser<I>() -> impl Parser<Input = I, Output = SegmentRegister>
         .map(|hexes| hexes.into_iter().tuples::<(_,_,_,_)>().next().unwrap());
 
     let parser = (id, hex_list)
-        .map(move |(id, d)| SegmentRegister(id, d));
+        .map(move |(id, d)| d);
 
     parser
 }
@@ -101,7 +101,7 @@ mod test {
     #[test]
     fn get_segment_register() {
         let result = segment_parser().parse("ES =0000 00000000 0000ffff 00009300");
-        assert_eq!(result, Ok((SegmentRegister("ES".to_string(), (0, 0, 0xffff, 0x9300)), "")));
+        assert_eq!(result, Ok(((0, 0, 0xffff, 0x9300), "")));
     }
 
     #[test]
