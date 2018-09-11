@@ -4,8 +4,8 @@
 extern crate combine;
 extern crate itertools;
 use combine::{Parser, many1, token, sep_by, between, one_of};
-use combine::char::{hex_digit, letter, spaces, string, newline};
-use combine::parser::repeat::skip_until;
+use combine::char::{hex_digit, spaces, string, newline};
+use combine::parser::repeat::{skip_until};
 
 mod register_parser;
 
@@ -129,12 +129,6 @@ mod test {
 
     #[test]
     fn segments() {
-        let mut parser = segment_parser();
-        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\n").unwrap();
-
-        let mut parser = many1::<String, _>(hex_digit()).map(|h| u64::from_str_radix(&h, 16).unwrap());
-        let res = parser.parse("9300\n").unwrap();
-/* 
         let mut parser = struct_parser!{
             SegmentRegisters {
                 ES: segment_parser().skip(newline()),
@@ -142,11 +136,19 @@ mod test {
                 SS: segment_parser().skip(newline()),
                 DS: segment_parser().skip(newline()),
                 FS: segment_parser().skip(newline()),
-                GS: segment_parser(),
+                GS: segment_parser().skip(newline()),
             }
         };
 
-        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\nCS =0000 00000000 0000ffff 00009b00\nSS =0000 00000000 0000ffff 00009300\nDS =0000 00000000 0000ffff 00009300\nFS =0000 00000000 0000ffff 00009300\nGS =0000 00000000 0000ffff 00009300");
- */
+        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\nCS =0000 00000000 0000ffff 00009b00\nSS =0000 00000000 0000ffff 00009300\nDS =0000 00000000 0000ffff 00009300\nFS =0000 00000000 0000ffff 00009300\nGS =0000 00000000 0000ffff 00009300\n");
+        let expect = SegmentRegisters {
+            ES: (0, 0, 0xffff, 0x9300),
+            CS: (0, 0, 0xffff, 0x9b00),
+            SS: (0, 0, 0xffff, 0x9300),
+            DS: (0, 0, 0xffff, 0x9300),
+            FS: (0, 0, 0xffff, 0x9300),
+            GS: (0, 0, 0xffff, 0x9300),
+        };
+        assert_eq!(res, Ok((expect, "")));
     }
 }
