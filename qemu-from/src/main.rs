@@ -71,7 +71,9 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
-    use register_parser::{gpr_parser, eflags_parser, hflag_parser, qword_parser, segment_parser};
+    use register_parser::{
+            gpr_parser, eflags_parser, hflag_parser, qword_parser, segment_parser,
+            dt_parser};
 
     #[test]
     fn status_registers() {
@@ -105,26 +107,25 @@ mod test {
     }
 
     #[test]
-    fn gdt() {
-        let dt = string("GDT").or(string("IDT")).skip(token('='));
-        let value = || spaces().with(many1::<String, _>(hex_digit())
-            .map(|h| u64::from_str_radix(&h, 16).unwrap()));
-        let value_pair = (value(), value());
+    fn descriptor_tables() {
+        let mut parser = struct_parser!{
+            DescriptorTable {
+                GDT: dt_parser().skip(newline()),
+                IDT: dt_parser().skip(newline()),
+            }
+        };
 
-        let mut parser = (dt, value_pair);
-        let res = parser.parse("GDT=     000f6c00 00000037").unwrap();
-        assert_eq!(res, (("GDT", (0xf6c00, 0x37)), ""));
-
-        let res = parser.parse("IDT=     00000000 000003ff").unwrap();
-        assert_eq!(res, (("IDT", (0, 0x3ff)), ""));
+        let res = parser.parse("GDT=     000f6c00 00000037\nIDT=     00000000 000003ff\n").unwrap();
+        let expect = DescriptorTable { GDT: (0xf6c00, 0x37), IDT: (0x0, 0x3ff) };
+        assert_eq!(res, (expect, ""));
     }
 
     #[test]
     fn qemu_internal() {
-        let mut parser = skip_until(newline());
+        let mut parser = skip_until(newline()).skip(newline());
         let res = parser.parse("CCS=00000000 CCD=0000fea4 CCO=EFLAGS\n").unwrap();
 
-        assert_eq!(res, ((), "\n"));
+        assert_eq!(res, ((), ""));
     }
 
     #[test]

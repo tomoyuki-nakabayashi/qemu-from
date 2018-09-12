@@ -1,7 +1,7 @@
 use ::{GeneralRegister, HFlag};
 use combine::{Parser, Stream, many1, token, one_of, between, count};
 use combine::parser::repeat::skip_until;
-use combine::char::{hex_digit, letter, spaces, alpha_num};
+use combine::char::{hex_digit, letter, spaces, alpha_num, string};
 use combine::error::ParseError;
 extern crate itertools;
 
@@ -85,6 +85,19 @@ pub(crate) fn eflags_parser<I>() -> impl Parser<Input = I, Output = Vec<char>>
     let eflag = many1::<Vec<char>, _>(one_of("DOSZAPC-".chars()));
     let parser = spaces().with(between(token('['), token(']'), eflag));
 
+    parser
+}
+
+pub(crate) fn dt_parser<I>() -> impl Parser<Input = I, Output = (u64, u64)>
+    where I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let id = string("GDT").or(string("IDT")).skip(token('='));
+    let value = || spaces().with(many1::<String, _>(hex_digit())
+        .map(|h| u64::from_str_radix(&h, 16).unwrap()));
+    let value_pair = (value(), value());
+
+    let parser = (id, value_pair).map(|(_, pair)| pair);
     parser
 }
 
