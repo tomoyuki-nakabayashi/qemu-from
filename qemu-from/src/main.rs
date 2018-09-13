@@ -40,10 +40,16 @@ struct ControlRegs {
     CR1: u64,
     CR2: u64,
     CR3: u64,
+}
+
+#[derive(Debug, PartialEq)]
+struct DebugRegs {
     DR0: u64,
     DR1: u64,
     DR2: u64,
     DR3: u64,
+    DR6: u64,
+    DR7: u64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -117,6 +123,40 @@ mod test {
 
         let res = parser.parse("GDT=     000f6c00 00000037\nIDT=     00000000 000003ff\n").unwrap();
         let expect = DescriptorTable { GDT: (0xf6c00, 0x37), IDT: (0x0, 0x3ff) };
+        assert_eq!(res, (expect, ""));
+    }
+
+    #[test]
+    fn control_regs() {
+        let mut parser = struct_parser!{
+            ControlRegs {
+                CR0: qword_parser(),
+                CR1: qword_parser(),
+                CR2: qword_parser(),
+                CR3: qword_parser().skip(newline()),
+            }
+        };
+
+        let res = parser.parse("CR0=00000010 CR2=00000000 CR3=00000000 CR4=00000000\n").unwrap();
+        let expect = ControlRegs { CR0: 0x10, CR1: 0, CR2: 0, CR3: 0, };
+        assert_eq!(res, (expect, ""));
+    }
+
+    #[test]
+    fn debug_regs() {
+        let mut parser = struct_parser!{
+            DebugRegs {
+                DR0: qword_parser(),
+                DR1: qword_parser(),
+                DR2: qword_parser(),
+                DR3: qword_parser().skip(newline()),
+                DR6: qword_parser(),
+                DR7: qword_parser().skip(newline()),
+            }
+        };
+
+        let res = parser.parse("DR0=0000000000000000 DR1=0000000000000000 DR2=0000000000000000 DR3=0000000000000000\nDR6=00000000ffff0ff0 DR7=0000000000000400\n").unwrap();
+        let expect = DebugRegs { DR0: 0, DR1: 0, DR2: 0, DR3: 0, DR6: 0xffff0ff0, DR7: 0x400 };
         assert_eq!(res, (expect, ""));
     }
 
