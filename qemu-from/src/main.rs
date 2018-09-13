@@ -19,6 +19,18 @@ pub(crate) struct SegmentRegister (String, (u64, u64, u64, u64));
 pub(crate) struct HFlag (String, u64);
 
 #[derive(Debug, PartialEq)]
+struct GeneralRegisters {
+    EAX: u64,
+    EBX: u64,
+    ECX: u64,
+    EDX: u64,
+    ESI: u64,
+    EDI: u64,
+    EBP: u64,
+    ESP: u64,
+}
+
+#[derive(Debug, PartialEq)]
 struct SegmentRegisters {
     ES: (u64, u64, u64, u64),
     CS: (u64, u64, u64, u64),
@@ -80,6 +92,26 @@ mod test {
     use register_parser::{
             gpr_parser, eflags_parser, hflag_parser, qword_parser, segment_parser,
             dt_parser};
+
+    #[test]
+    fn general_regs() {
+        let mut parser = struct_parser!{
+            GeneralRegisters {
+                EAX: qword_parser(),
+                EBX: qword_parser(),
+                ECX: qword_parser(),
+                EDX: qword_parser().skip(newline()),
+                ESI: qword_parser(),
+                EDI: qword_parser(),
+                EBP: qword_parser(),
+                ESP: qword_parser().skip(newline()),
+            }
+        };
+
+        let res = parser.parse("EAX=0000aa55 EBX=00000000 ECX=00000000 EDX=00000080\nESI=00000000 EDI=00000000 EBP=00000000 ESP=00006f2c\n").unwrap();
+        let expect = GeneralRegisters { EAX: 0xaa55, EBX: 0, ECX: 0, EDX: 0x80, ESI: 0, EDI: 0, EBP: 0, ESP: 0x6f2c };
+        assert_eq!(res, (expect, ""));
+    }
 
     #[test]
     fn status_registers() {
