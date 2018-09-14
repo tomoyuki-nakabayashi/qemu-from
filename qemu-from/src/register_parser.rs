@@ -71,7 +71,7 @@ pub(crate) fn hflag_parser<I>() -> impl Parser<Input = I, Output = HFlag>
     where I: Stream<Item = char>,
           I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let id = many1::<String, _>(alpha_num()).skip(token('='));
+    let id = spaces().with(many1::<String, _>(alpha_num()).skip(token('=')));
     let value = many1::<String, _>(hex_digit()).map(|h| u64::from_str_radix(&h, 16).unwrap());
     let parser = (id, value).map(|(id, value)| { HFlag(id, value) });
 

@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate combine;
 extern crate itertools;
-use combine::{Parser, Stream, many1, token, sep_by, between, one_of};
+use combine::{Parser, Stream, count};
 use combine::char::{spaces, newline};
 use combine::parser::repeat::{skip_until};
 use combine::error::ParseError;
@@ -62,6 +62,8 @@ struct SegmentRegisters {
     DS: (u64, u64, u64, u64),
     FS: (u64, u64, u64, u64),
     GS: (u64, u64, u64, u64),
+    LDT: (u64, u64, u64, u64),
+    TR: (u64, u64, u64, u64),
 }
 
 fn segment_regs_parser<I>() -> impl Parser<Input = I, Output = SegmentRegisters>
@@ -76,6 +78,8 @@ fn segment_regs_parser<I>() -> impl Parser<Input = I, Output = SegmentRegisters>
             DS: segment_parser().skip(newline()),
             FS: segment_parser().skip(newline()),
             GS: segment_parser().skip(newline()),
+            LDT: segment_parser().skip(newline()),
+            TR: segment_parser().skip(newline()),
         }
     };
 
@@ -173,7 +177,8 @@ fn status_regs_parser<I>() -> impl Parser<Input = I, Output = StatusRegisters>
             EFLAGS_RAW: qword_parser(),
             EFLAGS: eflags_parser(),
             _: spaces(),
-            HFLAGS: sep_by(hflag_parser(), spaces()),
+            HFLAGS: count::<Vec<HFlag>, _>(5, hflag_parser()),
+            _: newline(),
         }
     };
 
@@ -187,6 +192,7 @@ struct Cpu {
     segment_regs: SegmentRegisters,
     dt: DescriptorTable,
     control_regs: ControlRegs,
+    debug_regs: DebugRegs,
     efer: u64,
 }
 
@@ -201,6 +207,7 @@ fn cpu_state_parser<I>() -> impl Parser<Input = I, Output = Cpu>
             segment_regs: segment_regs_parser(),
             dt: descriptor_tables_parser(),
             control_regs: control_regs_parser(),
+            debug_regs: debug_regs_parser(),
             _: skip_until(newline()).skip(newline()),
             efer: qword_parser(),
         }
@@ -210,6 +217,28 @@ fn cpu_state_parser<I>() -> impl Parser<Input = I, Output = Cpu>
 }
 
 fn main() {
+    let mut parser = cpu_state_parser();
+    let res = parser.parse("EAX=0000aa55 EBX=00000000 ECX=00000000 EDX=00000080
+ESI=00000000 EDI=00000000 EBP=00000000 ESP=00006f2c
+EIP=00007c00 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0
+ES =0000 00000000 0000ffff 00009300
+CS =0000 00000000 0000ffff 00009b00
+SS =0000 00000000 0000ffff 00009300
+DS =0000 00000000 0000ffff 00009300
+FS =0000 00000000 0000ffff 00009300
+GS =0000 00000000 0000ffff 00009300
+LDT=0000 00000000 0000ffff 00008200
+TR =0000 00000000 0000ffff 00008b00
+GDT=     000f6c00 00000037
+IDT=     00000000 000003ff
+CR0=00000010 CR2=00000000 CR3=00000000 CR4=00000000
+DR0=0000000000000000 DR1=0000000000000000 DR2=0000000000000000 DR3=0000000000000000
+DR6=00000000ffff0ff0 DR7=0000000000000400
+CCS=00000000 CCD=0000fea4 CCO=EFLAGS
+EFER=0000000000000000"
+    );
+
+    println!("{:?}", res);
 }
 
 
@@ -283,7 +312,7 @@ mod test {
     #[test]
     fn segment_regs() {
         let mut parser = segment_regs_parser();
-        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\nCS =0000 00000000 0000ffff 00009b00\nSS =0000 00000000 0000ffff 00009300\nDS =0000 00000000 0000ffff 00009300\nFS =0000 00000000 0000ffff 00009300\nGS =0000 00000000 0000ffff 00009300\n");
+        let res = parser.parse("ES =0000 00000000 0000ffff 00009300\nCS =0000 00000000 0000ffff 00009b00\nSS =0000 00000000 0000ffff 00009300\nDS =0000 00000000 0000ffff 00009300\nFS =0000 00000000 0000ffff 00009300\nGS =0000 00000000 0000ffff 00009300\nLDT=0000 00000000 0000ffff 00008200\nTR =0000 00000000 0000ffff 00008b00\n");
         let expect = SegmentRegisters {
             ES: (0, 0, 0xffff, 0x9300),
             CS: (0, 0, 0xffff, 0x9b00),
@@ -291,6 +320,8 @@ mod test {
             DS: (0, 0, 0xffff, 0x9300),
             FS: (0, 0, 0xffff, 0x9300),
             GS: (0, 0, 0xffff, 0x9300),
+            LDT: (0, 0, 0xffff, 0x8200),
+            TR: (0, 0, 0xffff, 0x8b00),
         };
         assert_eq!(res, Ok((expect, "")));
     }
