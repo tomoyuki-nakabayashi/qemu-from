@@ -8,20 +8,13 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 use combine::{Parser, Stream, count};
-use combine::char::{spaces, newline};
+use combine::char::{newline};
 use combine::parser::repeat::{skip_until};
 use combine::error::ParseError;
 
 mod register_parser;
-
 use register_parser::{
         eflags_parser, hflag_parser, qword_parser, segment_parser, dt_parser};
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub(crate) struct GeneralRegister (usize, u64);
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub(crate) struct SegmentRegister (String, (u64, u64, u64, u64));
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct HFlag (String, u64);
@@ -180,7 +173,6 @@ fn status_regs_parser<I>() -> impl Parser<Input = I, Output = StatusRegisters>
             EIP: qword_parser(),
             EFLAGS_RAW: qword_parser(),
             EFLAGS: eflags_parser(),
-            _: spaces(),
             HFLAGS: count::<Vec<HFlag>, _>(5, hflag_parser()),
             _: newline(),
         }
@@ -263,20 +255,19 @@ mod test {
     #[test]
     fn status_registers() {
         let mut parser = status_regs_parser();
-        let res = parser.parse("EIP=00007c00 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0");
+        let res = parser.parse("EIP=00007c00 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0\n");
         assert_eq!(res.unwrap(), (StatusRegisters{
             EIP: qword_parser().parse("EIP=00007c00").unwrap().0,
             EFLAGS_RAW: qword_parser().parse("EFL=00000202").unwrap().0,
             EFLAGS: eflags_parser().parse("[-------]").unwrap().0,
-            HFLAGS: sep_by(hflag_parser(), spaces()).parse("CPL=0 II=0 A20=1 SMM=0 HLT=0").unwrap().0 
+            HFLAGS: count::<Vec<HFlag>, _>(5, hflag_parser()).parse("CPL=0 II=0 A20=1 SMM=0 HLT=0").unwrap().0,
             },
             ""));
     }
 
     #[test]
     fn eflags() {
-        let eflag = many1::<Vec<_>, _>(one_of("DOSZAPC-".chars()));
-        let mut parser = between(token('['), token(']'), eflag);
+        let mut parser = eflags_parser();
 
         let res = parser.parse("[-O----C]");
         assert_eq!(res.unwrap(), (vec!['-', 'O', '-', '-', '-', '-', 'C'], ""));
