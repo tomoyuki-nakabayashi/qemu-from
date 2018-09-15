@@ -2,9 +2,8 @@
 
 use combine::char::newline;
 use combine::error::ParseError;
-use combine::parser::repeat::skip_until;
 use combine::{count, Parser, Stream};
-use register_parser::{
+use x86_element_parser::{
     HFlag,
     dt_line_parser, eflags_parser, hflag_parser, qword_parser,
     segment_line_parser, qemu_internal_line_parser, qword_line_parser};
@@ -214,7 +213,8 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use register_parser::{eflags_parser, hflag_parser, qword_parser};
+    use combine::parser::repeat::skip_until;
+    use x86_element_parser::{eflags_parser, hflag_parser, qword_parser};
 
     #[test]
     fn general_regs() {

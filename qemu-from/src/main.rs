@@ -6,7 +6,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
-mod register_parser;
+mod x86_element_parser;
 mod x86_cpu_state_parser;
 
 use combine::{Parser};
