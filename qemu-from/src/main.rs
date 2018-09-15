@@ -3,6 +3,10 @@
 #[macro_use]
 extern crate combine;
 extern crate itertools;
+extern crate serde;
+extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 use combine::{Parser, Stream, count};
 use combine::char::{spaces, newline};
 use combine::parser::repeat::{skip_until};
@@ -13,16 +17,16 @@ mod register_parser;
 use register_parser::{
         eflags_parser, hflag_parser, qword_parser, segment_parser, dt_parser};
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct GeneralRegister (usize, u64);
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct SegmentRegister (String, (u64, u64, u64, u64));
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct HFlag (String, u64);
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct GeneralRegisters {
     EAX: u64,
     EBX: u64,
@@ -54,7 +58,7 @@ fn general_regs_parser<I>() -> impl Parser<Input = I, Output = GeneralRegisters>
     parser
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct SegmentRegisters {
     ES: (u64, u64, u64, u64),
     CS: (u64, u64, u64, u64),
@@ -86,7 +90,7 @@ fn segment_regs_parser<I>() -> impl Parser<Input = I, Output = SegmentRegisters>
     parser
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct DescriptorTable {
     GDT: (u64, u64),
     IDT: (u64, u64),
@@ -107,7 +111,7 @@ fn descriptor_tables_parser<I>() -> impl Parser<Input = I, Output = DescriptorTa
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct ControlRegs {
     CR0: u64,
     CR1: u64,
@@ -131,7 +135,7 @@ fn control_regs_parser<I>() -> impl Parser<Input = I, Output = ControlRegs>
     parser
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct DebugRegs {
     DR0: u64,
     DR1: u64,
@@ -159,7 +163,7 @@ fn debug_regs_parser<I>() -> impl Parser<Input = I, Output = DebugRegs>
     parser
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct StatusRegisters {
     EIP: u64,
     EFLAGS_RAW: u64,
@@ -185,7 +189,7 @@ fn status_regs_parser<I>() -> impl Parser<Input = I, Output = StatusRegisters>
     parser
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct Cpu {
     regs: GeneralRegisters,
     status_regs: StatusRegisters,
@@ -238,7 +242,8 @@ CCS=00000000 CCD=0000fea4 CCO=EFLAGS
 EFER=0000000000000000"
     );
 
-    println!("{:?}", res);
+    let json_str = serde_json::to_string(&res.unwrap().0).unwrap();
+    println!("{}", json_str);
 }
 
 

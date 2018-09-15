@@ -6,3 +6,6 @@ authors = ["tomoyuki-nakabayashi <tomo.wait.for.it.yuki@gmail.com>"]
 [dependencies]
 combine = "3.5.1"
 itertools = "0.5.9"
+serde="1.0.76"
+serde_derive="1.0.76"
+serde_json="1.0.26"
