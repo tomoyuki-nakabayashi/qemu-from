@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 #[macro_use]
 extern crate combine;
 extern crate itertools;
@@ -9,12 +7,12 @@ extern crate serde_json;
 extern crate serde_derive;
 
 mod register_parser;
-mod cpu_state_parser;
+mod x86_cpu_state_parser;
 
 use combine::{Parser};
 
 fn main() {
-    let mut parser = cpu_state_parser::cpu_state_parser();
+    let mut parser = x86_cpu_state_parser::x86_cpu_state_parser();
     let res = parser.parse(
         "EAX=0000aa55 EBX=00000000 ECX=00000000 EDX=00000080
 ESI=00000000 EDI=00000000 EBP=00000000 ESP=00006f2c

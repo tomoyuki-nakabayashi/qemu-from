@@ -4,7 +4,42 @@ use combine::char::newline;
 use combine::error::ParseError;
 use combine::parser::repeat::skip_until;
 use combine::{count, Parser, Stream};
-use register_parser::{HFlag, dt_parser, eflags_parser, hflag_parser, qword_parser, segment_parser};
+use register_parser::{
+    HFlag,
+    dt_line_parser, eflags_parser, hflag_parser, qword_parser,
+    segment_line_parser, qemu_internal_line_parser, qword_line_parser};
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Cpu {
+    general_regs: GeneralRegisters,
+    status_regs: StatusRegisters,
+    segment_regs: SegmentRegisters,
+    desc_tables: DescriptorTable,
+    control_regs: ControlRegs,
+    debug_regs: DebugRegs,
+    efer: u64,
+}
+
+pub fn x86_cpu_state_parser<I>() -> impl Parser<Input = I, Output = Cpu>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let parser = struct_parser!{
+        Cpu {
+            general_regs: general_regs_parser(),
+            status_regs: status_regs_parser(),
+            segment_regs: segment_regs_parser(),
+            desc_tables: descriptor_tables_parser(),
+            control_regs: control_regs_parser(),
+            debug_regs: debug_regs_parser(),
+            _: qemu_internal_line_parser(),
+            efer: qword_line_parser(),
+        }
+    };
+
+    parser
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct GeneralRegisters {
@@ -58,14 +93,14 @@ where
 {
     let parser = struct_parser!{
         SegmentRegisters {
-            ES: segment_parser().skip(newline()),
-            CS: segment_parser().skip(newline()),
-            SS: segment_parser().skip(newline()),
-            DS: segment_parser().skip(newline()),
-            FS: segment_parser().skip(newline()),
-            GS: segment_parser().skip(newline()),
-            LDT: segment_parser().skip(newline()),
-            TR: segment_parser().skip(newline()),
+            ES:  segment_line_parser(),
+            CS:  segment_line_parser(),
+            SS:  segment_line_parser(),
+            DS:  segment_line_parser(),
+            FS:  segment_line_parser(),
+            GS:  segment_line_parser(),
+            LDT: segment_line_parser(),
+            TR:  segment_line_parser(),
         }
     };
 
@@ -85,8 +120,8 @@ where
 {
     let parser = struct_parser!{
         DescriptorTable {
-            GDT: dt_parser().skip(newline()),
-            IDT: dt_parser().skip(newline()),
+            GDT: dt_line_parser(),
+            IDT: dt_line_parser(),
         }
     };
 
@@ -111,7 +146,8 @@ where
             CR0: qword_parser(),
             CR1: qword_parser(),
             CR2: qword_parser(),
-            CR3: qword_parser().skip(newline()),
+            CR3: qword_parser(),
+            _: newline(),
         }
     };
 
@@ -138,9 +174,11 @@ where
             DR0: qword_parser(),
             DR1: qword_parser(),
             DR2: qword_parser(),
-            DR3: qword_parser().skip(newline()),
+            DR3: qword_parser(),
+            _: newline(),
             DR6: qword_parser(),
-            DR7: qword_parser().skip(newline()),
+            DR7: qword_parser(),
+            _: newline(),
         }
     };
 
@@ -167,38 +205,6 @@ where
             EFLAGS: eflags_parser(),
             HFLAGS: count::<Vec<HFlag>, _>(5, hflag_parser()),
             _: newline(),
-        }
-    };
-
-    parser
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Cpu {
-    regs: GeneralRegisters,
-    status_regs: StatusRegisters,
-    segment_regs: SegmentRegisters,
-    dt: DescriptorTable,
-    control_regs: ControlRegs,
-    debug_regs: DebugRegs,
-    efer: u64,
-}
-
-pub fn cpu_state_parser<I>() -> impl Parser<Input = I, Output = Cpu>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    let parser = struct_parser!{
-        Cpu {
-            regs: general_regs_parser(),
-            status_regs: status_regs_parser(),
-            segment_regs: segment_regs_parser(),
-            dt: descriptor_tables_parser(),
-            control_regs: control_regs_parser(),
-            debug_regs: debug_regs_parser(),
-            _: skip_until(newline()).skip(newline()),
-            efer: qword_parser(),
         }
     };
 

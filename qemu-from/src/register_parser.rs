@@ -1,4 +1,4 @@
-use combine::char::{alpha_num, hex_digit, letter, spaces, string};
+use combine::char::{alpha_num, hex_digit, letter, spaces, string, newline};
 use combine::error::ParseError;
 use combine::parser::repeat::skip_until;
 use combine::{between, count, many1, one_of, token, Parser, Stream};
@@ -18,24 +18,6 @@ where
         let value = u64::from_str_radix(&value, 16).expect("Fail to convert to u64");
         value
     });
-
-    parser
-}
-
-pub(crate) fn segment_parser<I>() -> impl Parser<Input = I, Output = (u64, u64, u64, u64)>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    use itertools::Itertools;
-    let id = many1::<String, _>(letter()).skip(spaces()).skip(token('='));
-    let hex = spaces()
-        .with(many1::<String, _>(hex_digit()))
-        .map(|h| u64::from_str_radix(&h, 16).expect("hexadecimal number."));
-
-    let hex_list = count::<Vec<u64>, _>(4, hex)
-        .map(|hexes| hexes.into_iter().tuples::<(_, _, _, _)>().next().expect("require four elements."));
-    let parser = (id, hex_list).map(move |(_id, d)| d);
 
     parser
 }
@@ -64,7 +46,37 @@ where
     parser
 }
 
-pub(crate) fn dt_parser<I>() -> impl Parser<Input = I, Output = (u64, u64)>
+pub(crate) fn qword_line_parser<I>() -> impl Parser<Input = I, Output = u64>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let parser = qword_parser().skip(newline());
+    parser
+}
+
+pub(crate) fn segment_line_parser<I>() -> impl Parser<Input = I, Output = (u64, u64, u64, u64)>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let id = many1::<String, _>(letter()).skip(spaces()).skip(token('='));
+    let hex = spaces()
+        .with(many1::<String, _>(hex_digit()))
+        .map(|h| u64::from_str_radix(&h, 16).expect("hexadecimal number."));
+
+    use itertools::Itertools;
+    let hex_list = count::<Vec<u64>, _>(4, hex)
+        .map(|hexes| hexes.into_iter().tuples::<(_, _, _, _)>().next().expect("require four elements."));
+
+    let parser = (id, hex_list)
+        .map(move |(_id, d)| d)
+        .skip(newline());
+
+    parser
+}
+
+pub(crate) fn dt_line_parser<I>() -> impl Parser<Input = I, Output = (u64, u64)>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
@@ -78,9 +90,21 @@ where
     };
     let value_pair = (value(), value());
 
-    let parser = (id, value_pair).map(|(_, pair)| pair);
+    let parser = (id, value_pair)
+        .map(|(_, pair)| pair)
+        .skip(newline());
     parser
 }
+
+pub(crate) fn qemu_internal_line_parser<I>() -> impl Parser<Input = I, Output = ()>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let parser = skip_until(newline()).skip(newline());
+    parser
+}
+
 
 #[cfg(test)]
 mod test {
@@ -88,7 +112,7 @@ mod test {
 
     #[test]
     fn get_segment_register() {
-        let result = segment_parser().parse("ES =0000 00000000 0000ffff 00009300");
+        let result = segment_line_parser().parse("ES =0000 00000000 0000ffff 00009300\n");
         assert_eq!(result, Ok(((0, 0, 0xffff, 0x9300), "")));
     }
 
