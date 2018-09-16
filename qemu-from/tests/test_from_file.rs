@@ -50,11 +50,13 @@ fn test_from_file_loop() {
     let mut buffer = std::str::from_utf8(&bytes).unwrap();
     let mut parser = x86_cpu_state_parser();
 
+    let mut out = File::create("qemu_lines.json").expect("fail to create file.");
+
     let mut count = 0;
     while let Ok((result, remaining)) = parser.parse(buffer) {
         let json_str = serde_json::to_string(&result);
         assert!(json_str.is_ok());
-        println!("{}", json_str.unwrap());
+        writeln!(out, "{}", json_str.unwrap()).expect("fail to write");
         buffer = remaining;
         count += 1;
     }
